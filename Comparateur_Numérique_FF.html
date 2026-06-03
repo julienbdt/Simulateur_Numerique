@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparateur numérique FF</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #334155;
+            --color-f1: #059669; /* Emeraude */
+            --color-f2: #d97706; /* Ambre */
+            --color-f3: #be123c; /* Rose foncé */
+            --water-color: #2563eb; /* Bleu */
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --danger: #e11d48;
+        }
+        
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary);
+            margin: 0;
+            padding: 10px 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+        
+        .hidden { display: none !important; }
+
+        /* En-tête */
+        .header {
+            flex: 0 0 auto;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .header h1 { margin: 0 0 5px 0; font-size: 1.5rem; color: var(--primary); }
+        .header .subtitle { color: #64748b; font-style: italic; font-size: 0.9rem; }
+
+        /* Onglets */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: #e2e8f0;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+            color: var(--secondary);
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Conteneur Principal */
+        .container {
+            flex: 1 1 0;
+            display: flex;
+            gap: 20px;
+            min-height: 0; 
+        }
+
+        .panel-controls {
+            flex: 0 0 380px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow-y: auto; 
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel-visuals {
+            flex: 1 1 0;
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        h2 {
+            font-size: 0.85rem;
+            color: var(--secondary);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 5px;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .section-group {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--secondary);
+        }
+        
+        .form-group { margin-bottom: 8px; }
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #475569;
+            margin-bottom: 2px;
+        }
+        select {
+            width: 100%;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .fluid-select-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .color-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            justify-content: center;
+            background: #e2e8f0;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        .input-row input[type="range"] { flex-grow: 1; }
+        .input-row input[type="number"] {
+            width: 60px; padding: 4px; border: 1px solid #cbd5e1;
+            border-radius: 4px; text-align: center; font-weight: bold; font-size: 0.8rem;
+        }
+
+        .canvas-container { flex: 1 1 0; position: relative; min-height: 150px; }
+
+        .results-grid {
+            flex: 0 0 auto;
+            display: grid;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .metric-card {
+            background: #ffffff;
+            border-radius: 8px;
+            text-align: center;
+            border-top: 5px solid #ccc;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #card-f1 { border-color: var(--color-f1); }
+        #card-f2 { border-color: var(--color-f2); }
+        #card-f3 { border-color: var(--color-f3); }
+        
+        .card-header {
+            background: #f8fafc;
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .card-header h3 { margin: 0; font-size: 1.1rem; color: var(--primary); font-weight: 700; }
+
+        .card-body {
+            padding: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .data-box {
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 6px 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .span-2 { grid-column: span 2; }
+        
+        .data-box.highlight-box {
+            grid-column: span 2;
+            background: #e0f2fe;
+            border: 1px solid #bae6fd;
+            padding: 10px 4px;
+        }
+
+        .data-label {
+            font-size: 0.65rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+
+        .data-val {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .data-box.highlight-box .data-val {
+            font-size: 1.4rem;
+            color: #0369a1;
+        }
+
+        .warning-tc {
+            background-color: #ffe4e6;
+            color: var(--danger);
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 6px;
+            animation: blink 1.5s infinite;
+            border-top: 1px solid #fda4af;
+        }
+        .text-danger { color: var(--danger) !important; }
+
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        .conclusion {
+            flex: 0 0 auto;
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .relation-thermo {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #065f46;
+            background-color: #dcfce7;
+            padding: 5px 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Comparateur numérique FF</h1>
+        <div class="subtitle">Analyse d'efficacité thermodynamique</div>
+    </div>
+
+    <div class="container">
+        <div class="panel-controls">
+            <div class="tabs">
+                <button class="tab-btn active" data-mode="single" onclick="setTab('single')">1 Fluide</button>
+                <button class="tab-btn" data-mode="compare" onclick="setTab('compare')">Comparaison</button>
+            </div>
+
+            <div class="section-group">
+                <h2>Sélection des fluides</h2>
+                <div id="compare-options" class="radio-group hidden">
+                    <label><input type="radio" name="numFluids" value="2" onchange="updateUI()"> 2 Fluides</label>
+                    <label><input type="radio" name="numFluids" value="3" checked onchange="updateUI()"> 3 Fluides</label>
+                </div>
+                <div class="fluid-select-row" id="row-f1">
+                    <div class="color-indicator" style="background-color: var(--color-f1);"></div>
+                    <select id="fluid1-select" onchange="updateSimulation()"></select>
+                </div>
+                <div class="fluid-select-row hidden" id="row-f2">
+                    <div class="color-indicator" style="background-color: var(--color-f2);"></div>
+                    <select id="fluid2-select" onchange="updateSimulation()"></select>
+                </div>
+                <div class="fluid-select-row hidden" id="row-f3">
+                    <div class="color-indicator" style="background-color: var(--color-f3);"></div>
+                    <select id="fluid3-select" onchange="updateSimulation()"></select>
+                </div>
+            </div>
+            
+            <div class="section-group">
+                <h2>Réseau Eau Sanitaire</h2>
+                <div class="form-group">
+                    <label>T° Eau Froide (Entrée) [°C]</label>
+                    <div class="input-row">
+                        <input type="range" id="t-ef-slider" min="5" max="25" step="1" value="15">
+                        <input type="number" id="t-ef-num" value="15">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>T° ECS (Sortie) [°C]</label>
+                    <div class="input-row">
+                        <input type="range" id="t-ecs-slider" min="30" max="95" step="1" value="50">
+                        <input type="number" id="t-ecs-num" value="50">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-group" id="params-condenseur">
+                <h2>Paramètres Condenseur (Sub-critique)</h2>
+                <div class="form-group">
+                    <label>Pincement Condenseur [K]</label>
+                    <div class="input-row">
+                        <input type="range" id="pinch-cond-slider" min="1" max="25" step="1" value="10">
+                        <input type="number" id="pinch-cond-num" value="10">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Sous-refroidissement [K]</label>
+                    <div class="input-row">
+                        <input type="range" id="subcool-slider" min="0" max="20" step="1" value="2">
+                        <input type="number" id="subcool-num" value="2">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Désurchauffe [K]</label>
+                    <div class="input-row">
+                        <input type="range" id="desup-slider" min="0" max="60" step="1" value="35">
+                        <input type="number" id="desup-num" value="35">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-group" id="params-gascooler">
+                <h2>Paramètres Gas Cooler (Transcritique)</h2>
+                <div class="form-group">
+                    <label>Pincement Sortie [K]</label>
+                    <div class="input-row">
+                        <input type="range" id="pinch-gc-slider" min="1" max="25" step="1" value="10">
+                        <input type="number" id="pinch-gc-num" value="10">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>T° Refoulement [°C]</label>
+                    <div class="input-row">
+                        <input type="range" id="t-refoul-slider" min="60" max="140" step="1" value="110">
+                        <input type="number" id="t-refoul-num" value="110">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Courbure (Exposant)</label>
+                    <div class="input-row">
+                        <input type="range" id="exp-slider" min="0.5" max="1.5" step="0.05" value="0.85">
+                        <input type="number" id="exp-num" value="0.85">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-visuals">
+            <div class="canvas-container">
+                <canvas id="thermoChart"></canvas>
+            </div>
+            <div class="results-grid" id="results-grid">
+                <div class="metric-card" id="card-f1">
+                    <div class="card-header">
+                        <h3 id="f1-title">F1</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="data-box span-2">
+                            <span class="data-label">Famille</span>
+                            <span class="data-val" id="f1-family">-</span>
+                        </div>
+                        <div class="data-box">
+                            <span class="data-label">Glissement</span>
+                            <span class="data-val" id="f1-glide">-</span>
+                        </div>
+                        <div class="data-box">
+                            <span class="data-label">T° Critique</span>
+                            <span class="data-val" id="f1-tc">-</span>
+                        </div>
+                        <div class="data-box highlight-box">
+                            <span class="data-label">Écart Thermique Moyen</span>
+                            <span class="data-val" id="res-f1">0.0 K</span>
+                        </div>
+                    </div>
+                    <div class="warning-tc hidden" id="f1-warning">CYCLE IMPOSSIBLE (Tc dépassée)</div>
+                </div>
+                <div class="metric-card hidden" id="card-f2">
+                    <div class="card-header">
+                        <h3 id="f2-title">F2</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="data-box span-2">
+                            <span class="data-label">Famille</span>
+                            <span class="data-val" id="f2-family">-</span>
+                        </div>
+                        <div class="data-box">
+                            <span class="data-label">Glissement</span>
+                            <span class="data-val" id="f2-glide">-</span>
+                        </div>
+                        <div class="data-box">
+                            <span class="data-label">T° Critique</span>
+                            <span class="data-val" id="f2-tc">-</span>
+                        </div>
+                        <div class="data-box highlight-box">
+                            <span class="data-label">Écart Thermique Moyen</span>
+                            <span class="data-val" id="res-f2">0.0 K</span>
+                        </div>
+                    </div>
+                    <div class="warning-tc hidden" id="f2-warning">CYCLE IMPOSSIBLE (Tc dépassée)</div>
+                </div>
+                <div class="metric-card hidden" id="card-f3">
+                    <div class="card-header">
+                        <h3 id="f3-title">F3</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="data-box span-2">
+                            <span class="data-label">Famille</span>
+                            <span class="data-val" id="f3-family">-</span>
+                        </div>
+                        <div class="data-box">
+                            <span class="data-label">Glissement</span>
+                            <span class="data-val" id="f3-glide">-</span>
+                        </div>
+                        <div class="data-box">
+                            <span class="data-label">T° Critique</span>
+                            <span class="data-val" id="f3-tc">-</span>
+                        </div>
+                        <div class="data-box highlight-box">
+                            <span class="data-label">Écart Thermique Moyen</span>
+                            <span class="data-val" id="res-f3">0.0 K</span>
+                        </div>
+                    </div>
+                    <div class="warning-tc hidden" id="f3-warning">CYCLE IMPOSSIBLE (Tc dépassée)</div>
+                </div>
+            </div>
+            <div class="conclusion hidden" id="conclusion-box"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'single';
+
+        // -- BASE DE DONNEES MISE À JOUR (IMAGE + PHYSIQUE) --
+        const fluidsDb = {
+            'R744':    { code: 'R744', name: 'CO2', family: 'Naturel', type: 'trans', glide: 0, tc: 31.1 },
+            'R454C':   { code: 'R454C', name: '', family: 'HFO/HFC', type: 'sub', glide: 8.2, tc: 85.7 },
+            'R407C':   { code: 'R407C', name: '', family: 'HFC (Mélange)', type: 'sub', glide: 7.2, tc: 86.0 },
+            'R1234ze': { code: 'R1234ze', name: '', family: 'HFO', type: 'sub', glide: 0, tc: 109.4 },
+            'R1234yf': { code: 'R1234yf', name: '', family: 'HFO', type: 'sub', glide: 0, tc: 94.7 },
+            'R32':     { code: 'R32', name: '', family: 'HFC', type: 'sub', glide: 0, tc: 78.1 },
+            'R290':    { code: 'R290', name: 'Propane', family: 'Hydrocarbure', type: 'sub', glide: 0, tc: 96.7 },
+            'R717':    { code: 'R717', name: 'Ammoniac', family: 'Ammoniac', type: 'sub', glide: 0, tc: 132.3 },
+            'R449A':   { code: 'R449A', name: '', family: 'HFO/HFC', type: 'sub', glide: 6.1, tc: 80.5 },
+            'R404A':   { code: 'R404A', name: '', family: 'HFC (Mélange)', type: 'sub', glide: 0.7, tc: 72.1 }
+        };
+
+        function setTab(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.tab-btn[data-mode="${mode}"]`).classList.add('active');
+            updateUI();
+        }
+
+        function updateUI() {
+            const numFluids = currentMode === 'single' ? 1 : parseInt(document.querySelector('input[name="numFluids"]:checked').value);
+            document.getElementById('compare-options').classList.toggle('hidden', currentMode === 'single');
+            document.getElementById('row-f2').classList.toggle('hidden', numFluids < 2);
+            document.getElementById('row-f3').classList.toggle('hidden', numFluids < 3);
+            document.getElementById('card-f2').classList.toggle('hidden', numFluids < 2);
+            document.getElementById('card-f3').classList.toggle('hidden', numFluids < 3);
+            document.getElementById('results-grid').style.gridTemplateColumns = `repeat(${numFluids}, 1fr)`;
+            document.getElementById('conclusion-box').classList.toggle('hidden', numFluids === 1);
+            updateSimulation();
+        }
+
+        function populateSelects() {
+            const selects = [document.getElementById('fluid1-select'), document.getElementById('fluid2-select'), document.getElementById('fluid3-select')];
+            for (const key in fluidsDb) {
+                const label = fluidsDb[key].name ? `${key} (${fluidsDb[key].name})` : key;
+                selects.forEach(s => s.options.add(new Option(label, key)));
+            }
+            
+            // Fluides par défaut qui forcent l'élève à configurer l'outil
+            selects[0].value = 'R454C';
+            selects[1].value = 'R1234ze';
+            selects[2].value = 'R32';
+        }
+
+        const ctx = document.getElementById('thermoChart').getContext('2d');
+        const thermoChart = new Chart(ctx, {
+            type: 'line',
+            data: { 
+                labels: [], 
+                datasets: [
+                    { label: 'Eau (EF -> ECS)', borderColor: '#2563eb', backgroundColor: 'transparent', borderWidth: 3, data: [], fill: false, pointRadius: 0 },
+                    { label: 'F1', borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, data: [], fill: 0, pointRadius: 0 },
+                    { label: 'F2', borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.2)', borderWidth: 3, borderDash: [5, 5], data: [], fill: 0, pointRadius: 0 },
+                    { label: 'F3', borderColor: '#be123c', backgroundColor: 'rgba(190, 18, 60, 0.2)', borderWidth: 3, borderDash: [2, 2], data: [], fill: 0, pointRadius: 0 }
+                ] 
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                animation: {
+                    duration: 250, // Transition fluide au lieu de redessiner
+                    easing: 'easeOutQuart'
+                },
+                scales: {
+                    x: { 
+                        title: { display: true, text: "Avancement de l'échange (%)", font: {weight: 'bold'} },
+                        ticks: {
+                            callback: function(val, index) {
+                                // On récupère le texte du label (ex: "12%") et on le convertit en nombre
+                                let label = this.getLabelForValue(val);
+                                let num = parseInt(label);
+                                // On n'affiche le texte que si cest un multiple de 10
+                                return (num % 10 === 0) ? label : '';
+                            },
+                            autoSkip: false, // Empêche Chart.js de masquer nos graduations personnalisées
+                            maxRotation: 0   // Garde les étiquettes bien horizontales
+                        }
+                    },
+                    y: { title: { display: true, text: "Température (°C)", font: {weight: 'bold'} } }
+                },
+                plugins: { legend: { position: 'top' } }
+            }
+        });
+
+        const ids = ['t-ef', 't-ecs', 'pinch-cond', 'subcool', 'desup', 'pinch-gc', 't-refoul', 'exp'];
+        const inputs = {};
+        ids.forEach(id => {
+            const slider = document.getElementById(id + '-slider');
+            const num = document.getElementById(id + '-num');
+            inputs[id] = { slider, num };
+            slider.addEventListener('input', (e) => { num.value = e.target.value; updateSimulation(); });
+            num.addEventListener('input', (e) => { slider.value = e.target.value; updateSimulation(); });
+        });
+
+        function getVal(id) { return parseFloat(inputs[id].num.value); }
+
+        function calculateFluidProfile(fluidKey, t, params) {
+            const fluid = fluidsDb[fluidKey];
+            if (fluid.type === 'sub') {
+                const glide = fluid.glide;
+                const T_cond_in = params.t_ecs + params.pinch_cond; 
+                const T_cond_out = T_cond_in - glide;
+                if (t <= 0.1) return (T_cond_out - params.subcool) + (t / 0.1) * params.subcool;
+                if (t <= 0.9) return T_cond_out + ((t - 0.1) / 0.8) * glide;
+                return T_cond_in + ((t - 0.9) / 0.1) * params.desup;
+            } else {
+                const T_out = params.t_ef + params.pinch_gc;
+                const T_in = params.t_refoul;
+                return T_out + (T_in - T_out) * Math.pow(t, params.exp);
+            }
+        }
+
+        function updateSimulation() {
+            const numFluids = currentMode === 'single' ? 1 : parseInt(document.querySelector('input[name="numFluids"]:checked').value);
+            const params = {
+                t_ef: getVal('t-ef'), t_ecs: getVal('t-ecs'),
+                pinch_cond: getVal('pinch-cond'), subcool: getVal('subcool'), desup: getVal('desup'),
+                pinch_gc: getVal('pinch-gc'), t_refoul: getVal('t-refoul'), exp: getVal('exp')
+            };
+
+            const selectedKeys = [
+                document.getElementById('fluid1-select').value,
+                document.getElementById('fluid2-select').value,
+                document.getElementById('fluid3-select').value
+            ];
+
+            let hasSub = false, hasTrans = false;
+            for(let f=0; f<numFluids; f++) {
+                if(fluidsDb[selectedKeys[f]].type === 'sub') hasSub = true;
+                else hasTrans = true;
+            }
+            document.getElementById('params-condenseur').classList.toggle('hidden', !hasSub);
+            document.getElementById('params-gascooler').classList.toggle('hidden', !hasTrans);
+
+            const labels = [], dataWater = [];
+            const dataFluids = [[], [], []], areas = [0, 0, 0];
+            const steps = 50;
+
+            for (let i = 0; i <= steps; i++) {
+                let t = i / steps;
+                labels.push((t * 100).toFixed(0) + '%');
+                let Tw = params.t_ef + t * (params.t_ecs - params.t_ef);
+                dataWater.push(Tw);
+                for(let f = 0; f < numFluids; f++) {
+                    let Tf = calculateFluidProfile(selectedKeys[f], t, params);
+                    dataFluids[f].push(Tf);
+                    if (i < steps) areas[f] += Math.max(0, Tf - Tw) * (1/steps);
+                }
+            }
+
+            // Mise à jour DYNAMIQUE des datasets (pour l'animation fluide)
+            thermoChart.data.labels = labels;
+            thermoChart.data.datasets[0].data = dataWater;
+            
+            for(let f = 0; f < 3; f++) {
+                if (f < numFluids) {
+                    const fluidObj = fluidsDb[selectedKeys[f]];
+                    thermoChart.data.datasets[f+1].label = fluidObj.name ? `${fluidObj.code} (${fluidObj.name})` : fluidObj.code;
+                    thermoChart.data.datasets[f+1].data = dataFluids[f];
+                    thermoChart.data.datasets[f+1].hidden = false;
+                } else {
+                    thermoChart.data.datasets[f+1].data = [];
+                    thermoChart.data.datasets[f+1].hidden = true;
+                }
+            }
+            thermoChart.update();
+
+            const resData = [];
+            for(let f = 0; f < numFluids; f++) {
+                const fluid = fluidsDb[selectedKeys[f]];
+                const cardId = f + 1;
+                const T_cond_max = params.t_ecs + params.pinch_cond;
+                const isCritical = fluid.type === 'sub' && T_cond_max >= fluid.tc;
+
+                document.getElementById(`f${cardId}-title`).innerText = fluid.name ? `${fluid.code} (${fluid.name})` : fluid.code;
+                document.getElementById(`f${cardId}-family`).innerText = fluid.family;
+                document.getElementById(`f${cardId}-glide`).innerText = fluid.glide > 0 ? `${fluid.glide} K` : '0 K';
+                document.getElementById(`f${cardId}-tc`).innerText = `${fluid.tc} °C`;
+                document.getElementById(`res-f${cardId}`).innerText = areas[f].toFixed(2) + " K";
+                
+                const warningEl = document.getElementById(`f${cardId}-warning`);
+                const tcValEl = document.getElementById(`f${cardId}-tc`);
+                
+                if(isCritical) {
+                    warningEl.classList.remove('hidden');
+                    tcValEl.classList.add('text-danger');
+                } else {
+                    warningEl.classList.add('hidden');
+                    tcValEl.classList.remove('text-danger');
+                }
+
+                resData.push({ name: fluid.code, area: areas[f] });
+            }
+
+            if (numFluids > 1) {
+                resData.sort((a, b) => a.area - b.area);
+                const best = resData[0], worst = resData[resData.length - 1];
+                let g = worst.area > 0 ? ((worst.area - best.area) / worst.area * 100).toFixed(1) : 0;
+                let html = `<strong>Résultat :</strong> Le fluide <strong>${best.name}</strong> réduit les irréversibilités de <strong>${g}%</strong> par rapport au ${worst.name}.<br>`;
+                html += `<div class="relation-thermo">💡 L'aire colorée entre la courbe du fluide et la courbe de l'eau représente l'irréversibilité thermique. Plus cette zone est petite, plus le système est efficace.</div>`;
+                document.getElementById('conclusion-box').innerHTML = html;
+            }
+        }
+
+        populateSelects();
+        updateUI();
+    </script>
+</body>
+</html>
